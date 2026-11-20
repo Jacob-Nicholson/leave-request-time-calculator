@@ -13,11 +13,11 @@ The original app had two big limitations:
 
 ## Process
 
-**1. Parallel prototypes.** Three of us (Halie, Caitlyn and I) each built our own version of time selection, partial-day calculation and a review screen. We then reviewed each other's code and UI, wrote test cases together, and combined the best ideas.
+**1. Parallel prototypes.** My team members and I each built our own version of time selection, partial-day calculation and a review screen. We then reviewed each other's code and UI, wrote test cases together, and combined the best ideas.
 
 ![My prototype: date and time selection, calculation method and review screen](docs/images/prototype-calculation.png)
 
-**2. Final solution.** The shipped app combined my calculation logic and error messages, Caitlyn's time picker and navigation fix, Halie's "All Day" checkbox and DateTime conversion, and Caitlyn and Halie's review screen.
+**2. Final solution.** The shipped app combined my calculation logic and error messages, Caitlyn's time picker and navigation fix and Halie's "All Day" checkbox and DateTime conversion, plus a new review screen
 
 **3. Excel → SharePoint.** I moved the app's backend from Excel to a SharePoint list, which supports multiple users, larger data sets and better data integrity. I added new fields (Total Hours, Leave ID), fixed record-update issues, updated the export logic and fixed approver emails.
 
