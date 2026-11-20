@@ -72,7 +72,6 @@ Tests also run automatically on every push with GitHub Actions.
 
 - **Original app:** Microsoft Power Apps (Power Fx), SharePoint, Office 365 Outlook connector
 - **Rewrite:** TypeScript, Vitest, GitHub Actions
-- **AI-assisted development:** Claude, for the TypeScript rewrite, tests and documentation
 
 ---
 
