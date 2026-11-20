@@ -1,0 +1,16 @@
+{
+  "name": "leave-request-time-calculator",
+  "version": "1.0.0",
+  "description": "Leave request work-time calculation from a Kent State Power Apps project, rewritten in TypeScript with tests.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,125 @@
+﻿//fixes bug navigating between screens
+If(_editingRequest,
+ Patch(RequestEdit, First(RequestEdit), {StartDate: LeaveStartDatePicker.SelectedDate, EndDate: LeaveEndDatePicker.SelectedDate, DaysCount:_requestedDays });
+ Navigate(EditRequestScreen, BorderStyle.None),_reviewRequest,Back(),
+ Navigate(SelectApproverScreen, BorderStyle.None)
+);
+
+
+//Resets records incase button is pressed twice
+Set(_calculatedHours, Blank());
+Set(_DaysRequsted, Blank());
+Set(_minsInbetweenTimePickers, Blank());
+Set(_hourDecimalPart, Blank());
+Set(_dayDecimalPart, Blank());
+
+
+//creates strings for sharepoint list
+Set(textEndDate, Text(cmp_TimePicker_end.Value, DateTimeFormat.ShortTime));
+Set(textStartDate, Text(cmp_TimePicker_start.Value, DateTimeFormat.ShortTime));
+If(_toAllDay, Set(textEndDate, "5:00 PM"));
+If(_fromAllDay, Set(textStartDate, "8:00 AM"));
+
+
+//Calculations
+//sets time from component into military time
+Set(_requestedStartTime, Text(cmp_TimePicker_start.Value, DateTimeFormat.ShortTime24));
+Set(_requestedEndTime, Text(cmp_TimePicker_end.Value, DateTimeFormat.ShortTime24));
+
+
+//separates hours from minutes for both timepickers
+ClearCollect(_SeparatedStartValues, Split(_requestedStartTime, ":" ));
+Set(_sepStartHrs, First(_SeparatedStartValues));
+Set(_sepStartMins, Last(_SeparatedStartValues));
+ClearCollect(_SeparatedEndValues, Split(_requestedEndTime, ":" ));
+Set(_sepEndHrs, First(_SeparatedEndValues));
+Set(_sepEndMins, Last(_SeparatedEndValues));
+
+
+//if all day checkbox is clicked, sets start timepicker to 8 am and end timepicker to 5pm, if not, calculates the total minutes into the day of each selected time of the time pickers
+If(
+_fromAllDay = true,
+Set(_minsIntoDayStart, 480), Set(_minsIntoDayStart, _sepStartHrs.Value * 60 + _sepStartMins.Value));
+
+
+If(
+_toAllDay = true,
+Set(_minsIntoDayEnd, 1020), Set(_minsIntoDayEnd, _sepEndHrs.Value * 60 + _sepEndMins.Value));
+
+
+//finds the difference between timepickers in minutes
+Set(_minsInbetweenTimePickers, _minsIntoDayEnd - _minsIntoDayStart);
+
+
+//12-1 employee lunch hour assumption, if the end timepicker is set between 12pm-1pm, it subtracts the minutes into 12 from requested time, if the end timepicker is after 1pm, and the start time picker is before, it subtracts an hour.
+
+
+If(_minsIntoDayStart < 780 && _minsIntoDayEnd >= 720 && _minsIntoDayEnd < 780, Set(_minsInbetweenTimePickers, _minsIntoDayEnd - _minsIntoDayStart - (_minsIntoDayEnd - 720)), If( _minsIntoDayStart < 720 && _minsIntoDayEnd > 780, Set(_minsInbetweenTimePickers, _minsIntoDayEnd - (_minsIntoDayStart + 60))));
+
+
+//adds the difference in minutes between the datepickers
+Set(_totalRequestedMinutes, _minsInbetweenTimePickers + DateDiff(LeaveStartDatePicker.SelectedDate, LeaveEndDatePicker.SelectedDate, TimeUnit.Minutes));
+
+
+//divides the full minutes into hours then days
+Set(_fullHours, _totalRequestedMinutes / 60);
+Set(_calculatedDays, _fullHours / 24);
+ClearCollect(_SeparatedDayValues, Split(Text(_calculatedDays), "."));
+Set(_FinalDays, First(_SeparatedDayValues));
+
+
+//if there is a remainder from the days, divides it into hours
+If(CountRows(_SeparatedDayValues) > 1, Set(_dayDecimalPart, Last(_SeparatedDayValues)));
+Set(_yourDayDecimal, "." & Text(_dayDecimalPart.Value));
+Set(_calculatedHours, _yourDayDecimal * 24);
+
+
+//corrects cumulative rounding errors
+If(_calculatedHours > 19.999 && _calculatedHours < 20, Set(_calculatedHours, 20));
+If(_calculatedHours > 1.999 && _calculatedHours < 2, Set(_calculatedHours, 2));
+If(_calculatedHours > 4.999 && _calculatedHours < 5, Set(_calculatedHours, 5));
+If(_calculatedHours > 7.999 && _calculatedHours < 8, Set(_calculatedHours, 8));
+
+
+ClearCollect(_SeparatedHourValues, Split(Text(_calculatedHours), "."));
+Set(_finalHours, First(_SeparatedHourValues));
+
+
+//if there is a remainder, divides it into minutes
+If(CountRows(_SeparatedHourValues) > 1, Set(_hourDecimalPart, Last(_SeparatedHourValues)));
+Set(_yourHourDecimal, "." & Text(_hourDecimalPart.Value));
+Set(_finalMinutesUnrounded, _yourHourDecimal *60);
+Set(_finalMinutes, Round(_finalMinutesUnrounded, 0));
+
+
+//Makes clock functional for work hours(8am-5pm), subtracts nights if multiple days
+If(Value(DateDiff(LeaveStartDatePicker.SelectedDate, LeaveEndDatePicker.SelectedDate, TimeUnit.Days)) > 0, Set(_hrsIfNight, Text(_finalHours.Value) -15));
+If(Value(Text(_finalHours.Value)) > 9, Set(_WrkHrs6, _hrsIfNight), Set(_WrkHrs6, Value(Text(_finalHours.Value))));
+
+
+//Subtracts weekends from requested days
+Set(_Weekdays1, DateDiff(LeaveStartDatePicker.SelectedDate, LeaveEndDatePicker.SelectedDate, TimeUnit.Days));
+Set(_Weekdays2,RoundDown(DateDiff(LeaveStartDatePicker.SelectedDate, LeaveEndDatePicker.SelectedDate, TimeUnit.Days) / 7, 0) * 5 +
+   Mod(5 + Weekday(LeaveEndDatePicker.SelectedDate) - Weekday(LeaveStartDatePicker.SelectedDate), 5));
+Set(_Weekends, _Weekdays1-_Weekdays2);
+Set(_DaysRequsted, _FinalDays.Value - _Weekends);
+
+
+//ensures weeks and days are properly rounded
+If(
+   _endWeekday = 7,
+   Set(_WrkHrs6, _WrkHrs6 - 8)
+);
+
+
+If(
+   _WrkHrs6 >= 8,
+   Set(_WrkHrs6,0);
+   Set(_DaysRequsted, _DaysRequsted + 1)
+);
+
+
+//navigates to next screen
+If(PreviousScreen= "Review", Back(),
+ Navigate(SelectApproverScreen, BorderStyle.None, { PreviousScreen: "Dates" })
+)
